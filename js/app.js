@@ -39,13 +39,20 @@
     }
    });
 
-  //view to display all the contacts 
+  //master (like a list view) view to display all the contacts - collections
   var DirectoryView = Backbone.View.extend({
       el: $("#contacts"),
    
       initialize: function () {
+          //initialize a new collection class and then call render 
           this.collection = new Directory(contacts);
           this.render();
+
+          this.$el.find("#filter").append(this.createSelect());
+
+          //event listeners
+          this.on("change:filterType", this.filterByType, this);
+          this.collection.on("reset", this.render, this);
       },
    
       render: function () {
@@ -60,7 +67,63 @@
               model: item
           });
           this.$el.append(contactView.render().el);
+      },
+
+      //get the type of contact from the contact array
+      //underscore uniq() funcion accepts an array and returns a new array of unique items - in this case we are passing in the contacts array and returning a new array of types 
+      getTypes: function () {
+          return _.uniq(this.collection.pluck("type"), false, function (type) {
+              return type.toLowerCase();
+          });
+      },
+       
+      //create and return select elements for each type (as determined by the getTypes method)
+      createSelect: function () {
+          var select = $("<select/>", {
+            html: "<option value='all'>All</option>"
+          });
+
+          _.each(this.getTypes(), function (item) {
+            var option = $("<option/>", {
+              value: item,
+              text: item
+            }).appendTo(select);
+          });
+
+          return select;
+      },
+
+      //add ui events
+      events: {
+        //the events attribute accepts an object of key:value pairs 
+        //key specifies the type of event and value is a selector to bind the event handler to
+        "change #filter select": "setFilter"
+      },
+
+      //set filter property and fire change event
+      setFilter: function (e) {
+        this.filterType = e.currentTarget.value;
+        this.trigger("change:filterType");
+      },
+
+      //filter the view
+      filterByType: function () {
+        if (this.filterType === "all") {
+          this.collection.reset(contacts);
+          contactsRouter.navigate("filter/all");
+        } 
+        else {
+          this.collection.reset(contacts, { silent: true });
+
+          var filterType = this.filterType,
+            filtered = _.filter(this.collection.models, function (item) {
+              return item.get("type") === filterType;
+            });
+
+            this.collection.reset(filtered);
+        }
       }
+
   });
 
   var directory = new DirectoryView();
