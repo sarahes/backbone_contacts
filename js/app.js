@@ -57,6 +57,7 @@
       render: function () {
         var that = this;
 
+        //remove the contacts unrelated to filter, otherwise they will just be appended to the end of the list
         this.$el.find("article").remove();
 
         _.each(this.collection.models, function (item) {
@@ -129,6 +130,18 @@
 
   });
 
+  var ContactsRouter = Backbone.Router.extend({
+    routes: {
+      "filter/:type": "urlFilter"
+    },
+   
+    urlFilter: function (type) {
+      directory.filterType = type;
+      directory.trigger("change:filterType");
+    }
+  });
+
+  //call the directory view by creating a new instance 
   var directory = new DirectoryView();
  
 } (jQuery));
