@@ -23,18 +23,46 @@
       model: Contact
    });
 
-   //view for displaying a single contact 
+   //view for displaying a single contact - one model to one template 1:1
    var ContactView = Backbone.View.extend({
+      //set some properties for the view 
       tagName: "article",
       className: "contact-container",
       template: $("#contactTemplate").html(),
  
       render: function () {
+          //_.template is Underscore function
           var tmpl = _.template(this.template);
  
           this.$el.html(tmpl(this.model.toJSON()));
           return this;
     }
    });
+
+  //view to display all the contacts 
+  var DirectoryView = Backbone.View.extend({
+      el: $("#contacts"),
+   
+      initialize: function () {
+          this.collection = new Directory(contacts);
+          this.render();
+      },
+   
+      render: function () {
+          var that = this;
+          _.each(this.collection.models, function (item) {
+              that.renderContact(item);
+          }, this);
+      },
+   
+      renderContact: function (item) {
+          var contactView = new ContactView({
+              model: item
+          });
+          this.$el.append(contactView.render().el);
+      }
+  });
+
+  var directory = new DirectoryView();
  
 } (jQuery));
