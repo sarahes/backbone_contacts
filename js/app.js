@@ -42,17 +42,16 @@
   //master (like a list view) view to display all the contacts - collections
   var DirectoryView = Backbone.View.extend({
       el: $("#contacts"),
-   
+
       initialize: function () {
-          //initialize a new collection class and then call render 
-          this.collection = new Directory(contacts);
-          this.render();
+        this.collection = new Directory(contacts);
 
-          this.$el.find("#filter").append(this.createSelect());
+        this.render();
+        this.$el.find("#filter").append(this.createSelect()); 
 
-          //event listeners
-          this.on("change:filterType", this.filterByType, this);
-          this.collection.on("reset", this.render, this);
+        //bind event listeners to the collections
+        this.on("change:filterType", this.filterByType, this);
+        this.collection.on("reset", this.render, this);
       },
    
       render: function () {
@@ -94,9 +93,9 @@
       },
 
       //add ui events
+      //the events attribute accepts an object of key:value pairs 
+      //key specifies the type of event and value is a selector to bind the event handler to
       events: {
-        //the events attribute accepts an object of key:value pairs 
-        //key specifies the type of event and value is a selector to bind the event handler to
         "change #filter select": "setFilter"
       },
 
@@ -111,19 +110,20 @@
         if (this.filterType === "all") {
           this.collection.reset(contacts);
           contactsRouter.navigate("filter/all");
-        } 
+        }
         else {
           this.collection.reset(contacts, { silent: true });
 
           var filterType = this.filterType,
-            filtered = _.filter(this.collection.models, function (item) {
-              return item.get("type") === filterType;
-            });
+          filtered = _.filter(this.collection.models, function (item) {
+            return item.get("type") === filterType;
+          });
 
-            this.collection.reset(filtered);
+          this.collection.reset(filtered);
+
         }
       }
-
+      
   });
 
   var directory = new DirectoryView();
