@@ -55,10 +55,13 @@
       },
    
       render: function () {
-          var that = this;
-          _.each(this.collection.models, function (item) {
-              that.renderContact(item);
-          }, this);
+        var that = this;
+
+        this.$el.find("article").remove();
+
+        _.each(this.collection.models, function (item) {
+          that.renderContact(item);
+        }, this);
       },
    
       renderContact: function (item) {
@@ -123,7 +126,7 @@
 
         }
       }
-      
+
   });
 
   var directory = new DirectoryView();
