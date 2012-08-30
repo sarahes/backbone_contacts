@@ -11,10 +11,15 @@
         { name: "Contact 8", address: "1, a street, a town, a city, AB12 3CD", tel: "0123456789", email: "anemail@me.com", type: "family" }
     ];
     
-    //create the Contact model and set some defaults
+    //create the Contact model and set some defaults - set to empty string incase nothing is entered for that contact 
     var Contact = Backbone.Model.extend({
       defaults: {
-          photo: "img/placeholder.png"
+          photo: "img/placeholder.png",
+          name: "",
+          address: "",
+          tel: "",
+          email: "",
+          type: ""
       }
     });
    
@@ -28,16 +33,107 @@
       //set some properties for the view 
       tagName: "article",
       className: "contact-container",
+
+      //the default template
       template: $("#contactTemplate").html(),
- 
+
+      //the edit template
+      editTemplate: _.template($("#contactEditTemplate").html()),
+
       render: function () {
-          //_.template is Underscore function
-          var tmpl = _.template(this.template);
+        var tmpl = _.template(this.template);
  
-          this.$el.html(tmpl(this.model.toJSON()));
-          return this;
-    }
-   });
+        this.$el.html(tmpl(this.model.toJSON()));
+        return this;
+      },
+
+      //ui event for editing, saving and deleting a single contact 
+      events: {
+        "click button.delete": "deleteContact",
+        "click button.edit": "editContact",
+        "change select.type": "addType",
+        "click button.save": "saveEdits",
+        "click button.cancel": "cancelEdit"
+      },
+       
+      //delete a single contact 
+      deleteContact: function () {
+        var removedType = this.model.get("type").toLowerCase();
+       
+        //destroy the model
+        this.model.destroy();
+       
+        //remove the html (view) associated with this model 
+        this.remove();
+       
+        //if this is the only contact with given type, remove from the select
+        if (_.indexOf(directory.getTypes(), removedType) === -1) {
+          directory.$el.find("#filter select").children("[value='" + removedType + "']").remove();
+        }
+      },
+
+      //edit a single contact
+      editContact: function () {
+        this.$el.html(this.editTemplate(this.model.toJSON()));
+
+        //add select to set type
+        var newOpt = $("<option/>", {
+            html: "<em>Add new...</em>",
+            value: "addType"
+        });
+
+        this.select = directory.createSelect().addClass("type").val(this.$el.find("#type").val()).append(newOpt).insertAfter(this.$el.find(".name"));
+        this.$el.find("input[type='hidden']").remove();
+      },
+
+      //add a new contact type
+      addType: function () {
+        if (this.select.val() === "addType") {
+          this.select.remove();
+
+          $("<input />", {
+              "class": "type"
+          }).insertAfter(this.$el.find(".name")).focus();
+        }
+      },
+
+      //save edits made to a single contact
+      saveEdits: function (e) {
+        e.preventDefault();
+       
+        var formData = {},
+        prev = this.model.previousAttributes();
+       
+        $(e.target).closest("form").find(":input").add(".photo").each(function () {
+          var el = $(this);
+          formData[el.attr("class")] = el.val();
+        });
+       
+        if (formData.photo === "") {
+          delete formData.photo;
+        }
+       
+        this.model.set(formData);
+       
+        this.render();
+       
+        if (prev.photo === "/img/placeholder.png") {
+          delete prev.photo;
+        }
+       
+        _.each(contacts, function (contact) {
+          if (_.isEqual(contact, prev)) {
+            contacts.splice(_.indexOf(contacts, contact), 1, formData);
+          }
+        });
+      },
+
+      //cancel, don't save edits made to a contact 
+      cancelEdit: function () {
+        this.render();
+      },
+  
+  });
 
   //master (like a list view) view to display all the contacts - collection
   var DirectoryView = Backbone.View.extend({
@@ -56,8 +152,11 @@
         this.on("change:filterType", this.filterByType, this);
         this.collection.on("reset", this.render, this);
 
-        //add new models to the view
+        //add new model 
         this.collection.on("add", this.renderContact, this);
+
+        //remove a model 
+        this.collection.on("remove", this.removeContact, this);
       },
    
       render: function () {
@@ -109,7 +208,8 @@
       //key specifies the type of event and value is a selector to bind the event handler to
       events: {
         "change #filter select": "setFilter",
-        "click #add": "addContact"
+        "click #add": "addContact",
+        "click #showForm": "showForm"
       },
 
       //add an event handler to be called when the select is changed 
@@ -142,8 +242,7 @@
           }
       },
 
-      //method to add a new contact model to the contacts collection 
-      //add a new contact
+      //add a new contact model to the contacts collection 
       addContact: function (e) {
         //prevent the page from reloading
         e.preventDefault();
@@ -170,6 +269,27 @@
           this.collection.add(new Contact(formData));
         }
       },
+
+      //remove a contact
+      removeContact: function (removedModel) {
+        //store the model's attributes 
+        var removed = removedModel.attributes;
+       
+        if (removed.photo === "/img/placeholder.png") {
+          delete removed.photo;
+        }
+       
+        _.each(contacts, function (contact) {
+          if (_.isEqual(contact, removed)) {
+            contacts.splice(_.indexOf(contacts, contact), 1);
+          }
+        });
+      },
+
+      //toggle the form for adding a new contact
+      showForm: function () {
+        this.$el.find("#addContact").slideToggle();
+      }
 
 
   });
