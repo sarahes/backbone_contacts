@@ -14,7 +14,7 @@
     //create the Contact model and set some defaults
     var Contact = Backbone.Model.extend({
       defaults: {
-          photo: "/img/placeholder.png"
+          photo: "img/placeholder.png"
       }
     });
    
@@ -39,17 +39,20 @@
     }
    });
 
-  //master (like a list view) view to display all the contacts - collections
+  //master (like a list view) view to display all the contacts - collection
   var DirectoryView = Backbone.View.extend({
+      //assign the container div to a variable to append stuff to
       el: $("#contacts"),
 
       initialize: function () {
         this.collection = new Directory(contacts);
 
         this.render();
+
+        //call the createSelect method to create the types drop down 
         this.$el.find("#filter").append(this.createSelect()); 
 
-        //bind event listeners to the collections
+        //bind event listeners to the collection
         this.on("change:filterType", this.filterByType, this);
         this.collection.on("reset", this.render, this);
       },
@@ -73,19 +76,21 @@
       },
 
       //get the type of contact from the contact array
-      //underscore uniq() funcion accepts an array and returns a new array of unique items - in this case we are passing in the contacts array and returning a new array of types 
       getTypes: function () {
+           //underscore uniq() funcion accepts an array and returns a new array of unique items 
+           //the pluck method is a simple way to pull all values of a single attribute out of a collection
           return _.uniq(this.collection.pluck("type"), false, function (type) {
               return type.toLowerCase();
           });
       },
        
-      //create and return select elements for each type (as determined by the getTypes method)
+      //create and return select elements for each type (as determined by the getTypes method) so it can be called later
       createSelect: function () {
           var select = $("<select/>", {
             html: "<option value='all'>All</option>"
           });
 
+          //use the each() method to iterate over every item returned by the getTypes method
           _.each(this.getTypes(), function (item) {
             var option = $("<option/>", {
               value: item,
@@ -96,14 +101,14 @@
           return select;
       },
 
-      //add ui events
+      //add ui events - this is an attribute of DirectoryView
       //the events attribute accepts an object of key:value pairs 
       //key specifies the type of event and value is a selector to bind the event handler to
       events: {
         "change #filter select": "setFilter"
       },
 
-      //set filter property and fire change event
+      //add an event handler to be called when the select is changed 
       setFilter: function (e) {
         this.filterType = e.currentTarget.value;
         this.trigger("change:filterType");
@@ -111,21 +116,26 @@
 
       //filter the view
       filterByType: function () {
-        if (this.filterType === "all") {
-          this.collection.reset(contacts);
-          contactsRouter.navigate("filter/all");
-        }
-        else {
-          this.collection.reset(contacts, { silent: true });
-
-          var filterType = this.filterType,
-          filtered = _.filter(this.collection.models, function (item) {
-            return item.get("type") === filterType;
-          });
-
-          this.collection.reset(filtered);
-
-        }
+          if (this.filterType === "all") {
+              this.collection.reset(contacts);
+       
+              contactsRouter.navigate("filter/all");
+       
+          } else {
+              this.collection.reset(contacts, { silent: true });
+       
+              //underscore  filter method accepts array to filter and a callback function to execute for each item in that array 
+              var filterType = this.filterType,
+                  filtered = _.filter(this.collection.models, function (item) {
+                      //will return true for each item that has a type equal to the value of filterType
+                      return item.get("type") === filterType;
+              });
+       
+              //now call reset again and pass it the filtered array (containing only items with the filterType)
+              this.collection.reset(filtered);
+      
+              contactsRouter.navigate("filter/" + filterType);
+          }
       }
 
   });
@@ -141,7 +151,13 @@
     }
   });
 
-  //call the directory view by creating a new instance 
+  //instaniate the directory view
   var directory = new DirectoryView();
+
+  //instaniate the contacts router 
+  var contactsRouter = new ContactsRouter();
+
+  //enable Backbone's history support so that it will monitor the URL for hash changes 
+  Backbone.history.start();
  
 } (jQuery));
