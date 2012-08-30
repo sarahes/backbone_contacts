@@ -55,6 +55,9 @@
         //bind event listeners to the collection
         this.on("change:filterType", this.filterByType, this);
         this.collection.on("reset", this.render, this);
+
+        //add new models to the view
+        this.collection.on("add", this.renderContact, this);
       },
    
       render: function () {
@@ -105,7 +108,8 @@
       //the events attribute accepts an object of key:value pairs 
       //key specifies the type of event and value is a selector to bind the event handler to
       events: {
-        "change #filter select": "setFilter"
+        "change #filter select": "setFilter",
+        "click #add": "addContact"
       },
 
       //add an event handler to be called when the select is changed 
@@ -136,7 +140,37 @@
       
               contactsRouter.navigate("filter/" + filterType);
           }
-      }
+      },
+
+      //method to add a new contact model to the contacts collection 
+      //add a new contact
+      addContact: function (e) {
+        //prevent the page from reloading
+        e.preventDefault();
+
+        //create a new array that will contain the form data
+        var formData = {};
+
+        //loop through the inputs and populate the formData array with the values 
+        $("#addContact").children("input").each(function (i, el) {
+          if ($(el).val() !== "") {
+            formData[el.id] = $(el).val();
+          }
+        });
+
+        //update data store
+        contacts.push(formData);
+
+        //re-render select if new type is unknown
+        if (_.indexOf(this.getTypes(), formData.type) === -1) {
+          this.collection.add(new Contact(formData));
+          this.$el.find("#filter").find("select").remove().end().append(this.createSelect());
+        } 
+        else {
+          this.collection.add(new Contact(formData));
+        }
+      },
+
 
   });
 
